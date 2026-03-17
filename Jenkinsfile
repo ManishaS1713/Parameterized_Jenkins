@@ -71,27 +71,32 @@ pipeline {
     steps {
         script {
 
-            def raw = bat(
+            def raw = powershell(
+                returnStdout: true,
                 script: '''
-                powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-                "$data = Import-Csv 'Parameterized_Jenkins-result.jtl'; ^
-                $total = $data.Count; ^
-                $success = ($data | Where-Object {$_.success -eq 'true'}).Count; ^
-                $fail = $total - $success; ^
-                $avg = [math]::Round(($data | Measure-Object -Property elapsed -Average).Average,2); ^
-                $start = $data[0].timeStamp; ^
-                $end = $data[-1].timeStamp; ^
-                $duration = ($end - $start)/1000; ^
-                $tps = [math]::Round($total / $duration,2); ^
-                $errorPct = [math]::Round(($fail/$total)*100,2); ^
-                Write-Output ('TOTAL=' + $total); ^
-                Write-Output ('SUCCESS=' + $success); ^
-                Write-Output ('FAIL=' + $fail); ^
-                Write-Output ('AVG=' + $avg); ^
-                Write-Output ('TPS=' + $tps); ^
-                Write-Output ('ERRORPCT=' + $errorPct)"
-                ''',
-                returnStdout: true
+                $data = Import-Csv "Parameterized_Jenkins-result.jtl"
+
+                $total = $data.Count
+                $success = ($data | Where-Object {$_.success -eq "true"}).Count
+                $fail = $total - $success
+                $avg = [math]::Round(($data | Measure-Object -Property elapsed -Average).Average,2)
+
+                $start = $data[0].timeStamp
+                $end = $data[-1].timeStamp
+                $duration = ($end - $start)/1000
+
+                if ($duration -eq 0) { $duration = 1 }
+
+                $tps = [math]::Round($total / $duration,2)
+                $errorPct = [math]::Round(($fail/$total)*100,2)
+
+                Write-Output "TOTAL=$total"
+                Write-Output "SUCCESS=$success"
+                Write-Output "FAIL=$fail"
+                Write-Output "AVG=$avg"
+                Write-Output "TPS=$tps"
+                Write-Output "ERRORPCT=$errorPct"
+                '''
             ).trim()
 
             echo raw
