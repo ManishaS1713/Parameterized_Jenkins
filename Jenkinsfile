@@ -116,6 +116,7 @@ pipeline {
         stage('Publish Report') {
             steps {
                 publishHTML([
+                    allowMissing: true,
                     reportDir: 'Parameterized_Jenkins-report',
                     reportFiles: 'index.html',
                     reportName: 'JMeter Report',
