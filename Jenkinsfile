@@ -38,11 +38,11 @@ pipeline {
             steps {
                 script {
                     if (params.ENV == 'DEV') {
-                        HOST = "prefscale-frontend-9icy.onrender.com"
+                       env.HOST = "prefscale-frontend-9icy.onrender.com"
                     } else if (params.ENV == 'QA') {
-                        HOST = "prefscale-frontend-9icy.onrender.com"
+                        env.HOST = "prefscale-frontend-9icy.onrender.com"
                     } else {
-                        HOST = "prefscale-frontend-9icy.onrender.com"
+                        env.HOST = "prefscale-frontend-9icy.onrender.com"
                     }
 
                     echo "Environment: ${params.ENV}"
