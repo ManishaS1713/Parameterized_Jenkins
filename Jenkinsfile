@@ -68,51 +68,50 @@ pipeline {
         }
 
         stage('Generate Summary') {
-            steps {
-                script {
+    steps {
+        script {
 
-                    def raw = bat(
-                        script: '''
-                        powershell -Command "$data = Import-Csv 'Parameterized_Jenkins-result.jtl'; 
-                        $total = $data.Count; 
-                        $success = ($data | Where-Object {$_.success -eq 'true'}).Count; 
-                        $fail = $total - $success; 
-                        $avg = [math]::Round(($data | Measure-Object -Property elapsed -Average).Average,2);
-                        $start = $data[0].timeStamp;
-                        $end = $data[-1].timeStamp;
-                        $duration = ($end - $start)/1000;
-                        $tps = [math]::Round($total / $duration,2);
-                        $errorPct = [math]::Round(($fail/$total)*100,2);
+            def raw = bat(
+                script: '''
+                powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+                "$data = Import-Csv 'Parameterized_Jenkins-result.jtl'; ^
+                $total = $data.Count; ^
+                $success = ($data | Where-Object {$_.success -eq 'true'}).Count; ^
+                $fail = $total - $success; ^
+                $avg = [math]::Round(($data | Measure-Object -Property elapsed -Average).Average,2); ^
+                $start = $data[0].timeStamp; ^
+                $end = $data[-1].timeStamp; ^
+                $duration = ($end - $start)/1000; ^
+                $tps = [math]::Round($total / $duration,2); ^
+                $errorPct = [math]::Round(($fail/$total)*100,2); ^
+                Write-Output ('TOTAL=' + $total); ^
+                Write-Output ('SUCCESS=' + $success); ^
+                Write-Output ('FAIL=' + $fail); ^
+                Write-Output ('AVG=' + $avg); ^
+                Write-Output ('TPS=' + $tps); ^
+                Write-Output ('ERRORPCT=' + $errorPct)"
+                ''',
+                returnStdout: true
+            ).trim()
 
-                        Write-Output ('TOTAL=' + $total);
-                        Write-Output ('SUCCESS=' + $success);
-                        Write-Output ('FAIL=' + $fail);
-                        Write-Output ('AVG=' + $avg);
-                        Write-Output ('TPS=' + $tps);
-                        Write-Output ('ERRORPCT=' + $errorPct);
-                        "''',
-                        returnStdout: true
-                    ).trim()
+            echo raw
 
-                    echo raw
+            def lines = raw.split("\\r?\\n")
 
-                    def lines = raw.split("\\r?\\n")
+            TOTAL = lines.find { it.startsWith("TOTAL=") }?.split("=")[1]
+            SUCCESS = lines.find { it.startsWith("SUCCESS=") }?.split("=")[1]
+            FAIL = lines.find { it.startsWith("FAIL=") }?.split("=")[1]
+            AVG = lines.find { it.startsWith("AVG=") }?.split("=")[1]
+            TPS = lines.find { it.startsWith("TPS=") }?.split("=")[1]
+            ERRORPCT = lines.find { it.startsWith("ERRORPCT=") }?.split("=")[1]
 
-                    TOTAL = lines.find { it.startsWith("TOTAL=") }?.split("=")[1]
-                    SUCCESS = lines.find { it.startsWith("SUCCESS=") }?.split("=")[1]
-                    FAIL = lines.find { it.startsWith("FAIL=") }?.split("=")[1]
-                    AVG = lines.find { it.startsWith("AVG=") }?.split("=")[1]
-                    TPS = lines.find { it.startsWith("TPS=") }?.split("=")[1]
-                    ERRORPCT = lines.find { it.startsWith("ERRORPCT=") }?.split("=")[1]
-
-                    SLA_STATUS = "PASS"
-                    if (AVG.toFloat() > 1000 || ERRORPCT.toFloat() > 1) {
-                        SLA_STATUS = "FAIL"
-                    }
-                }
+            SLA_STATUS = "PASS"
+            if ((AVG ?: "0").toFloat() > 1000 || (ERRORPCT ?: "0").toFloat() > 1) {
+                SLA_STATUS = "FAIL"
             }
         }
-
+    }
+}
         stage('Publish Report') {
             steps {
                 publishHTML([
